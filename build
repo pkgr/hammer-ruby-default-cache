@@ -39,18 +39,14 @@ Dir.chdir(ext) do
   pipe "curl #{vendor_url}/libyaml-0.1.4.tgz -s -o - | tar xzf -"
 end
 
-FileUtils.cp("#{gemfile_dir}/rails4/Gemfile", ".")
-FileUtils.cp("#{gemfile_dir}/rails4/Gemfile.lock", ".")
-
 gem_home     = "#{output_dir}/vendor/bundle/ruby/2.0.0"
 gem_path     = "#{gem_home}:#{workspace_dir}/#{bundler}"
 path         = "#{workspace_dir}/#{ruby}/bin:#{workspace_dir}/#{bundler}/bin:$PATH"
 yaml_include = "#{workspace_dir}/#{ext}/include"
 yaml_lib     = "#{workspace_dir}/#{ext}/lib"
-
-env  = {
-  "BUNDLE_GEMFILE"                => "#{workspace_dir}/Gemfile",
-  "BUNDLE_CONFIG"                 => "#{`pwd`.chomp}/.bundle/config",
+cmd          = "bundle install"
+opts         = "--path #{output_dir}/vendor/bundle --deployment -j4"
+env_hash     = {
   "PATH"                          => path,
   "GEM_HOME"                      => gem_home,
   "GEM_PATH"                      => gem_path,
@@ -58,7 +54,17 @@ env  = {
   "CPPATH"                        => "#{yaml_include}:$CPPATH",
   "LIBRARY_PATH"                  => "#{yaml_lib}:$LIBRARY_PATH",
   "NOKOGIRI_USE_SYSTEM_LIBRARIES" => "true"
-}.to_a.map {|k,v| "#{k}=#{v}" }.join(" ")
-cmd  = "bundle install"
-opts = "--path #{output_dir}/vendor/bundle --deployment -j4"
-pipe("env #{env} #{cmd} #{opts}")
+}
+
+%w(rails4 unicorn puma nokogiri).each do |gemset|
+  gemset_dir = "#{gemfile_dir}/#{gemset}"
+  env        = env_hash.merge({
+    "BUNDLE_GEMFILE"                => "#{workspace_dir}/Gemfile",
+    "BUNDLE_CONFIG"                 => "#{`pwd`.chomp}/.bundle/config",
+  }).to_a.map {|k,v| "#{k}=#{v}" }.join(" ")
+
+  FileUtils.cp("#{gemset_dir}/Gemfile", ".")
+  FileUtils.cp("#{gemset_dir}/Gemfile.lock", ".")
+  pipe("env #{env} #{cmd} #{opts}")
+end
+
