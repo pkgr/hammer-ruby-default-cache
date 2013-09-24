@@ -18,10 +18,10 @@ def pipe(command)
 end
 
 workspace_dir, output_dir = ARGV
-gemfile_dir = File.expand_path(Dir.glob("/tmp/buildpack_*/gemfiles").reject {|s| s.include?("manifest") }.first)
-bundler     = "bundler-1.4.0.pre.2"
-ruby        = "ruby-2.0.0"
-vendor_url  = "https://s3-external-1.amazonaws.com/heroku-buildpack-ruby"
+gemfile_dirs = Dir.glob("/tmp/buildpack_*/gemfiles/*").reject {|s| s.include?("manifest") }.map {|dir| File.expand_path(dir) }
+bundler      = "bundler-1.4.0.pre.2"
+ruby         = "ruby-2.0.0"
+vendor_url   = "https://s3-external-1.amazonaws.com/heroku-buildpack-ruby"
 
 FileUtils.mkdir_p(ruby)
 Dir.chdir(ruby) do
@@ -56,15 +56,13 @@ env_hash     = {
   "NOKOGIRI_USE_SYSTEM_LIBRARIES" => "true"
 }
 
-%w(rails4 unicorn puma nokogiri).each do |gemset|
-  gemset_dir = "#{gemfile_dir}/#{gemset}"
-  env        = env_hash.merge({
+gemfile_dirs.each do |gemfile_dir|
+  env = env_hash.merge({
     "BUNDLE_GEMFILE"                => "#{workspace_dir}/Gemfile",
     "BUNDLE_CONFIG"                 => "#{`pwd`.chomp}/.bundle/config",
   }).to_a.map {|k,v| "#{k}=#{v}" }.join(" ")
 
-  FileUtils.cp("#{gemset_dir}/Gemfile", ".")
-  FileUtils.cp("#{gemset_dir}/Gemfile.lock", ".")
+  FileUtils.cp("#{gemfile_dir}/Gemfile", ".")
+  FileUtils.cp("#{gemfile_dir}/Gemfile.lock", ".")
   pipe("env #{env} #{cmd} #{opts}")
 end
-
