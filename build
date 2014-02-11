@@ -21,7 +21,7 @@ workspace_dir, output_dir = ARGV
 gemfile_dirs = Dir.glob("/tmp/buildpack_*/gemfiles/*").reject {|s| s.include?("manifest") }.map {|dir| File.expand_path(dir) }
 bundler      = "bundler-1.5.0.rc.1"
 ruby         = "ruby-#{ENV["RUBY_VERSION"]}"
-vendor_url   = "https://s3-external-1.amazonaws.com/heroku-buildpack-ruby"
+vendor_url   =  "https://s3-external-1.amazonaws.com/#{ENV.fetch("S3_BUCKET_NAME") { "heroku-buildpack-ruby" }}"
 
 FileUtils.mkdir_p(ruby)
 Dir.chdir(ruby) do
